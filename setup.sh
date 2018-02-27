@@ -109,20 +109,23 @@ dir=$PWD
 dir_check /home/$name/tools
 dir_check /home/$name/conf
 sed -i "s/internet = ens33/internet = $interface/g" $gitdir/conf/routing.conf &>> $logfile
-sed -i "s/steve/$name/g" $gitdir/supporting_scripts/start_cuckoo.sh &>> $logfile
+sed -i "s/qwe123/$interface/g" $gitdir/supporting_scripts/vmcloak.sh &>> $logfile
+sed -i "s/steve/$name/g" $gitdir/supporting_scripts/vmcloak.sh &>> $logfile
+sed -i "s/steve/$name/g" $gitdir/supporting_scripts/restart_cuckoo.sh &>> $logfile
+sed -i "s/steve/$name/g" $gitdir/supporting_scripts/update_signatures.sh &>> $logfile
 sed -i "s/ens160/$interface/g" $gitdir/lib/snort.service &>> $logfile
 cp $gitdir/conf/* /home/$name/conf
-cp $gitdir/supporting_scripts/firstrun.sh /home/$name/
+#cp $gitdir/supporting_scripts/firstrun.sh /home/$name/
 cp $gitdir/supporting_scripts/vmcloak.sh /home/$name/
+chmod +x /home/$name/vmcloak.sh
 chmod +x  $gitdir/supporting_scripts/update_signatures.sh
 cp $gitdir/supporting_scripts/update_signatures.sh /home/$name/
 chown $name:$name -R /home/$name/conf
-chown $name:$name -R /home/$name/firstrun.sh
+#chown $name:$name -R /home/$name/firstrun.sh
 chown $name:$name -R /home/$name/vmcloak.sh
-chmod +x /home/$name/firstrun.sh
-chmod +x $gitdir/supporting_scripts/start_cuckoo.sh
-chown $name:$name $gitdir/supporting_scripts/start_cuckoo.sh
-cp $gitdir/supporting_scripts/start_cuckoo.sh /home/$name/
+#chmod +x /home/$name/firstrun.sh
+chmod +x $gitdir/supporting_scripts/restart_cuckoo.sh
+cp $gitdir/supporting_scripts/restart_cuckoo.sh /home/$name/
 cd tools/
 
 ##Checks
@@ -137,12 +140,12 @@ updatedb  &>> $logfile
 if [ "$(cat /etc/apt/sources.list | grep multiverse | wc -l)" -ge "1" ]; then
  multi_check=true
 fi
-if [ "$(ls /etc/apt/sources.list.d/mongodb-org-3.4.list | wc -l)" -ge "1" ]; then
+if [ "$(ls /etc/apt/sources.list.d | grep mongodb-org-3.6.list | wc -l)" -ge "1" ]; then
  mongo_check=true
 fi
-if [ "$(locate /etc/systemd/system/mongodb.service | wc -l)" -ge "1" ]; then
- mongoservice_check=true
-fi
+#if [ "$(locate /etc/systemd/system/mongodb.service | wc -l)" -ge "1" ]; then
+# mongoservice_check=true
+#fi
 if [ "$(ls /etc/apt/sources.list.d/ | grep elastic-5| wc -l)" -ge "1" ]; then
  elastic_check=true
 fi
@@ -194,8 +197,8 @@ fi
 if [ "$mongo_check" == "true" ]; then
 print_status "${YELLOW}Skipping Mongo Repos${NC}"
 else
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359A14518585931BC711F9BA15703C6 &>> $logfile
-echo "deb [ arch=amd64,arm64 ] http://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.4 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-3.4.list &>> $logfile
+apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5 &>> $logfile
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list &>> $logfile
 error_check 'Mongodb repo added'
 fi
 
@@ -268,16 +271,16 @@ pip install -U pip cuckoo &>> $logfile
 error_check 'Cuckoo and depos downloaded and installed'
 
 ##Start MongoDB
-if [ "$mongoservice_check" == "true" ]; then
-print_status "${YELLOW}Mongo Service enabled, skipping config${NC}"
-else
-print_status "${YELLOW}Setting up MongoDB${NC}"
-chmod 755 $gitdir/lib/mongodb.service &>> $logfile
-cp $gitdir/lib/mongodb.service /etc/systemd/system/ &>> $logfile
-systemctl start mongodb &>> $logfile
-systemctl enable mongodb &>> $logfile
-error_check 'MongoDB Setup'
-fi
+#if [ "$mongoservice_check" == "true" ]; then
+#print_status "${YELLOW}Mongo Service enabled, skipping config${NC}"
+#else
+#print_status "${YELLOW}Setting up MongoDB${NC}"
+#chmod 755 $gitdir/lib/mongodb.service &>> $logfile
+#cp $gitdir/lib/mongodb.service /etc/systemd/system/ &>> $logfile
+#systemctl start mongodb &>> $logfile
+#systemctl enable mongodb &>> $logfile
+#error_check 'MongoDB Setup'
+#fi
 
 ##Cuckoo Add-ons
 ##Java 
@@ -588,9 +591,51 @@ systemctl enable rc-local &>> $logfile
 cp $gitdir/lib/threshold.config /etc/suricata/
 error_check "Routing configured"
 
+##Cuckoo Web and first run
+print_status "${YELLOW}Setting up Cuckoo signatures${NC}"
+sudo -i -u $name cuckoo &
+sleep 20
+sudo -i -u $name cp /home/$name/conf/* /home/$name/.cuckoo/conf
+sudo -i -u $name cuckoo community
+
+print_status "${YELLOW}Configuring webserver${NC}"
+sudo adduser www-data $name  &>> $logfile
+
+sudo -i -u $name cuckoo web --uwsgi | tee /tmp/cuckoo-web.ini  &>> $logfile
+mv /tmp/cuckoo-web.ini /etc/uwsgi/apps-available/  &>> $logfile
+ln -s /etc/uwsgi/apps-available/cuckoo-web.ini /etc/uwsgi/apps-enabled/  &>> $logfile
+
+sudo -i -u $name cuckoo web --nginx | tee /tmp/cuckoo-web  &>> $logfile
+mv /tmp/cuckoo-web /etc/nginx/sites-available/  &>> $logfile
+sed -i -e 's/localhost/0.0.0.0/g' /etc/nginx/sites-available/cuckoo-web  &>> $logfile
+ln -s /etc/nginx/sites-available/cuckoo-web /etc/nginx/sites-enabled/ &>> $logfile
+
+sudo -i -u $name cuckoo api --uwsgi | tee /tmp/cuckoo-api.ini  &>> $logfile
+mv /tmp/cuckoo-api.ini /etc/uwsgi/apps-available/  &>> $logfile
+ln -s /etc/uwsgi/apps-available/cuckoo-api.ini /etc/uwsgi/apps-enabled/ &>> $logfile
+
+sudo -i -u $name cuckoo api --nginx | tee /tmp/cuckoo-api &>> $logfile
+mv /tmp/cuckoo-api /etc/nginx/sites-available/  &>> $logfile
+sed -i -e 's/localhost/0.0.0.0/g' /etc/nginx/sites-available/cuckoo-api  &>> $logfile
+ln -s /etc/nginx/sites-available/cuckoo-api /etc/nginx/sites-enabled/ &>> $logfile
+
+service uwsgi restart  &>> $logfile
+service nginx restart  &>> $logfile
+
+print_status "${YELLOW}Installing vmcloak${NC}"
+dir_check /mnt/windows_ISO &>> $logfile
+dir_check /mnt/office_ISO &>> $logfile
+apt-get install mkisofs genisoimage libffi-dev python-pip libssl-dev python-dev -y &>> $logfile
+pip install vmcloak  &>> $logfile
+pip install -U pytest pytest-xdist &>> $logfile
+error_check 'Installed vmcloak'
+print_status "${YELLOW}Updating Agent${NC}"
+cp /home/$name/.cuckoo/agent/agent.py  /usr/local/lib/python2.7/dist-packages/vmcloak/data/bootstrap/ &>> $logfile
+chown root:staff /usr/local/lib/python2.7/dist-packages/vmcloak/data/bootstrap/agent.py &>> $logfile
+
 ##Cleaup
 print_status "${YELLOW}Doing some cleanup${NC}"
 apt-get -y autoremove &>> $logfile && apt-get -y autoclean &>> $logfile
 error_check "House keeping finished"
-echo -e "${YELLOW}Installation complete, login as $name and open the terminal. Change to the $name home directory and execute the ./firstrun.sh script to finish setup. In $name home folder you will find the start_cuckoo.sh script that will start rooter, cuckoo, processing module and the web ui. You will need to run rooter.sh as sudo before launching Cuckoo. To get started as fast as possible you will need to create a virtualbox vm and name it ${RED}cuckoo1${NC}.${YELLOW} On the Windows VM install the windows_exes that can be found under the tools folder. Name the snapshot ${RED}vmcloak${YELLOW}. Alternatively you can create the VM with the vmcloak.sh script provided in your home directory. This will require you have a local copy of the Windows ISO you wish to use. You can then launch cuckoo_start.sh and navigate to $HOSTNAME:8000 or https://$HOSTNAME if Nginx was installed.${NC}"
+echo -e "${YELLOW}Installation complete, login as $name and open the terminal. Run restart_cuckoo.sh if needed. To get started as fast as possible you will need to create a VM with the vmcloak.sh script provided in your home directory. This will require you have a local copy of the Windows ISO you wish to use. You can then navigate to $HOSTNAME:8000 and submit samples.${NC}"
 

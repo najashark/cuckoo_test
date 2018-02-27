@@ -1,6 +1,6 @@
 # cuckoo_test
 
-**Tested on v2.0.5**
+**Tested on v2.0.5 with Ubuntu Server 16.04**
 
 Limited error and input checking, use at your own risk!
 
@@ -18,7 +18,7 @@ Open your browser and point it at your host IP:8000
 
 FIN
 
-**Notes
+**Notes**
 
 A Moloch admin will be created, but a standard user named 'cuckoo' with password 'toor' will be available there are some fields that need to be provided during the Moloch installation so hang around.
 
