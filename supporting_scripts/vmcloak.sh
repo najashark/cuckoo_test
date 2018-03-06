@@ -218,6 +218,7 @@ else
  sudo -i -u $user VBoxManage setextradata $name VBoxInternal/Devices/ahci/0/Config/Port1/ATAPISerialNumber	'2727F3EA983D458AAB19'
 fi
 
+ sudo -i -u $user VBoxManage setextradata $name VBoxInternal/Devices/acpi/0/Config/CustomTable	$PWD/DSDT_HPPaviliondv4NotebookPC.bin
  sudo -i -u $user VBoxManage setextradata $name VBoxInternal/Devices/acpi/0/Config/AcpiOemId	'PTLTD'
  sudo -i -u $user VBoxManage setextradata $name VBoxInternal/Devices/acpi/0/Config/AcpiCreatorId	'MSFT'
  sudo -i -u $user VBoxManage setextradata $name VBoxInternal/Devices/acpi/0/Config/AcpiCreatorRev	'03000001'
