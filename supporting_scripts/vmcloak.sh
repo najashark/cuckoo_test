@@ -91,10 +91,6 @@ dir_check /mnt/office_ISO &>> $logfile
 #read user
 echo -e "${YELLOW}What is the name for this machine?${NC}"
 read name
-echo -e "${YELLOW}What IP would you like to assign to this machine (nneds to be in the 192.168.56.0/24 space)?${NC}"
-read ip
-echo -e "${YELLOW}What RDP port would you like to assign to this machine?${NC}"
-read rdp
 echo -e "${YELLOW}How much RAM would you like to allocate for this machine?${NC}"
 read ram
 echo -e "${YELLOW}How many CPU cores would you like to allocate for this machine?${NC}"
@@ -154,7 +150,7 @@ else
 mv /mnt/office_ISO/* /mnt/office_ISO/office.iso &>> $logfile
 su - $user -c "vmcloak install $name office office.isopath=/mnt/office_ISO/office.iso office.serialkey=$office_serial"
 #vmcloak -u $user install $name office office.isopath=/mnt/office_ISO/office.iso office.serialkey=$office_serial
-su - $user -c "vmcloak install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome ie11" 
+su - $user -c "vmcloak install $name python27 pillow adobe9 dotnet cuteftp flash chrome ie11 wic pillow java removetooltips wallpaper winrar chrome ie11" 
 #vmcloak -u $user install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome ie11
 error_check 'Installed apps on VMs'
 fi
@@ -242,17 +238,21 @@ fi
  sudo -i -u $user VBoxManage setextradata $name VBoxInternal/CPUM/HostCPUID/80000004/edx  0x00202020
  sudo -i -u $user VBoxManage modifyvm $name --paravirtprovider legacy  
  sudo -i -u $user VBoxManage modifyvm $name --vrde on
- sudo -i -u $user VBoxManage modifyvm $name --vrdeport $rdp
+ sudo -i -u $user VBoxManage modifyvm $name --vrdeport 3389
 
 echo -e "${YELLOW}Starting VM and waiting for response...${NC}"
 sudo -i -u $user VBoxManage startvm $name --type headless
 #while true; do ping -c 1 $ip > /dev/null && break; done
 
-read -n 1 -s -p "VM started, you can RDP to the running box at port $rdp, MAKE SURE TO ASSIGN A UNIQUE IP, make any changes, hit ENTER to take a snapshot and shutdown the machine."
+read -n 1 -s -p "VM started, you can RDP to the running box at port 3389 on this host's IP address, make any changes, hit ENTER when done to create a template machine."
 echo
+
+echo -e "${YELLOW}Shutting down VM...${NC}"
 sudo -i -u $user VBoxManage controlvm $name acpipowerbutton
+sleep 20
 
-echo -e "${YELLOW}Exporting OVA as golden image...${NC}"
+echo -e "${YELLOW}Exporting OVA as golden image and removing vm...${NC}"
 sudo -i -u $user vboxmanage export $name --output $PWD/"$name""_golden.ova"
+sudo -i -u $user vboxmanage unregistervm $name --delete
 
-echo -e "${YELLOW}VM creation completed!${NC}"
+echo -e "${YELLOW}VM creation completed, you can import this ova to cuckoo using the import_ova.sh script!${NC}"
