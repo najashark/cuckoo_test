@@ -66,6 +66,8 @@ hexchars="0123456789ABCDEF"
 end=$( for i in {1..6} ; do echo -n ${hexchars:$(( $RANDOM % 16 )):1} ; done | sed -e 's/\(..\)/\1/g' )
 macadd="0019EC$end"
 
+print_notification MAKE SURE TO RUN THIS AS YOUR CUCKOO USER!!!!
+
 if [ "$#" -eq 0 ];then
 	echo "Enter the name of the .ova to import "
         exit
@@ -77,11 +79,21 @@ if [ ! -f $ova ];then
 	echo "$1 does not exist, are you using the full path?"
 	exit
 fi
+
+print_status "${YELLOW}Checking for host only interface${NC}"
+t1=$(ifconfig -a | grep -o vboxnet0)
+t2='vboxnet0'
+if [ "$t1" = "$t2" ]; then
+  print_good "${YELLOW}Vboxnet0 interface found${NC}"
+else
+  print_error "${YELLOW}Vboxnet0 not found please turn on using the start_routing.sh script${NC}"
+fi
+
 echo -e "${YELLOW}What is the name for this machine?${NC}"
 read name
 echo -e "${YELLOW}What RDP port would you like to assign this machine?${NC}"
 read rdp
-echo -e "${YELLOW}What IP would you like to assign this machine?${NC}"
+echo -e "${YELLOW}What IP would you like to assign this machine (192.168.56.X)?${NC}"
 read ip
 VBoxManage import $ova --vsys 0 --vmname $name
 echo -e "${YELLOW}Setting up machine machine${NC}"

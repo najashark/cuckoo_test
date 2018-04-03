@@ -79,16 +79,16 @@ interface=qwe123
 dir_check /mnt/windows_ISO &>> $logfile
 dir_check /mnt/office_ISO &>> $logfile
 
-#echo -e "${RED}Active interfaces${NC}"
-#for iface in $(ifconfig | cut -d ' ' -f1| tr '\n' ' ')
-#do 
-#  addr=$(ip -o -4 addr list $iface | awk '{print $4}' | cut -d/ -f1)
-#  printf "$iface\t$addr\n"
-#done
-#echo -e "${YELLOW}What is the name of the interface which has an internet connection?(ex: eth0)${NC}"
-#read interface
-#echo -e "${YELLOW}What is the name for the Cuckoo user on this machine?${NC}"
-#read user
+echo -e "${RED}Active interfaces${NC}"
+for iface in $(ifconfig | cut -d ' ' -f1| tr '\n' ' ')
+do 
+  addr=$(ip -o -4 addr list $iface | awk '{print $4}' | cut -d/ -f1)
+  printf "$iface\t$addr\n"
+done
+echo -e "${YELLOW}What is the name of the interface which has an internet connection?(ex: eth0)${NC}"
+read interface
+echo -e "${YELLOW}What is the name for the Cuckoo user on this machine?${NC}"
+read user
 echo -e "${YELLOW}What is the name for this machine?${NC}"
 read name
 echo -e "${YELLOW}How much RAM would you like to allocate for this machine?${NC}"
@@ -143,14 +143,14 @@ fi
 echo -e "${YELLOW}Installing programs on VM.${NC}"
 if [ -z "$office_serial" ]
 then
-su - $user -c "vmcloak install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome ie11"
+su - $user -c "vmcloak install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome"
 #vmcloak -u $user install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome ie11
 error_check 'Installed apps on VMs'
 else
 mv /mnt/office_ISO/* /mnt/office_ISO/office.iso &>> $logfile
 su - $user -c "vmcloak install $name office office.isopath=/mnt/office_ISO/office.iso office.serialkey=$office_serial"
 #vmcloak -u $user install $name office office.isopath=/mnt/office_ISO/office.iso office.serialkey=$office_serial
-su - $user -c "vmcloak install $name python27 pillow adobe9 dotnet cuteftp flash chrome ie11 wic pillow java removetooltips wallpaper winrar chrome ie11" 
+su - $user -c "vmcloak install $name python27 pillow adobe9 dotnet cuteftp flash chrome ie11 wic pillow java removetooltips wallpaper winrar chrome" 
 #vmcloak -u $user install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome ie11
 error_check 'Installed apps on VMs'
 fi
