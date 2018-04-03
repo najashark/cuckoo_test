@@ -123,7 +123,7 @@ cp $gitdir/supporting_scripts/DSDT_HPPaviliondv4NotebookPC.bin /home/$name/
 cp $gitdir/supporting_scripts/DSDT_HPPaviliondv4NotebookPC.bin /home/$name/
 cp $gitdir/supporting_scripts/guest.ps1 /home/$name/
 chmod +x /home/$name/vmcloak.sh
-/home/$name/import_vbox_ova.sh /home/$name/
+cp $gitdir/supporting_scripts/import_vbox_ova.sh /home/$name/
 chmod +x /home/$name/import_vbox_ova.sh
 chown $name:$name /home/$name/import_vbox_ova.sh
 chmod +x  $gitdir/supporting_scripts/update_signatures.sh
