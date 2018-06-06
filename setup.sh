@@ -156,6 +156,9 @@ fi
 if [ "$(ls /etc/apt/sources.list.d/ | grep elastic-5| wc -l)" -ge "1" ]; then
  elastic_check=true
 fi
+if [ "$(ls /etc/apt/sources.list.d/ | grep virtualbox.list| wc -l)" -ge "1" ]; then
+ virtualbox_check=true
+fi
 if [ "$(which suricata | wc -l)" -ge "1" ]; then
  suricata_check=true
 fi
@@ -240,9 +243,13 @@ error_check 'Suricata repo added'
 fi
 
 # Add the VirtualBox repository so we can use apt to install VirtualBox
-echo deb http://download.virtualbox.org/virtualbox/debian xenial contrib | sudo tee -a /etc/apt/sources.list.d/virtualbox.list
-# Import the VirtualBox key
-wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
+if [ "$virtualbox_check" == "true" ]; then
+print_status "${YELLOW}Skipping Virtualbox Repos${NC}"
+else
+echo deb http://download.virtualbox.org/virtualbox/debian xenial contrib | sudo tee -a /etc/apt/sources.list.d/virtualbox.list &>> $logfile
+wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add - &>> $logfile
+error_check 'Virtualbox repo added'
+fi
 
 ####End of repos
 ##Holding pattern for dpkg...
