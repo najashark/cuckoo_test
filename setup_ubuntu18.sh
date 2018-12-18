@@ -275,7 +275,7 @@ chmod u+rwx /usr/local/src &>> $logfile
 apt-get install -y linux-headers-$(uname -r) &>> $logfile
 #libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386
 print_status "${YELLOW}Installing Apt Depos${NC}"
-install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libboost-all-dev libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi apt-transport-https software-properties-common libwww-perl libjson-perl ethtool parallel vagrant exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd virtualbox-5.2
+install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libboost-all-dev libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi apt-transport-https software-properties-common libwww-perl libjson-perl ethtool parallel vagrant exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd virtualbox-5.2 libossp-uuid-dev libpng-dev libcairo2-dev
 error_check 'Apt Depos installed'
 
 print_status "${YELLOW}Downloading and installing Virtualbox Extension${NC}"
@@ -291,9 +291,10 @@ pip install setuptools &>> $logfile
 pip install flex &>> $logfile
 pip install distorm3 &>> $logfile
 pip install pycrypto &>> $logfile
-pip install weasyprint &>> $logfile
+pip install weasyprint==0.42.3 &>> $logfile
 pip install yara-python &>> $logfile
-pip install m2crypto==0.24.0  &>> $logfile
+pip install m2crypto &>> $logfile
+pip install cryptography --upgrade &>> $logfile
 #pip install -U pip cuckoo==2.0.4a5 &>> $logfile
 pip install cuckoo &>> $logfile
 error_check 'Cuckoo and depos downloaded and installed'
@@ -508,7 +509,7 @@ cd guacamole-server-0.9.14  &>> $logfile
 ./configure --with-init-dir=/etc/init.d  &>> $logfile
 make && make install && cd ..  &>> $logfile
 ldconfig  &>> $logfile
-etc/init.d/guacd start  &>> $logfile
+service guacd start  &>> $logfile
 error_check 'Guacamole installed'
 
 ##TOR
