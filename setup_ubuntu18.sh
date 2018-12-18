@@ -1,8 +1,6 @@
 #!/bin/bash
 ####################################################################################################################
 
-#incorporate brad's signatures in to signatures/cross, remove andromedia/dridex_apis/chimera_api/deletes_self/cryptowall_apis
-
 
 if [ "$EUID" -ne 0 ]
   then echo "Please run as root"
@@ -72,14 +70,10 @@ else
 fi
 
 }
+export DEBIAN_FRONTEND=noninteractive
 ########################################
 ##BEGIN MAIN SCRIPT##
 #Pre checks: These are a couple of basic sanity checks the script does before proceeding.
-##Depos add
-#this is a nice little hack I found in stack exchange to suppress messages during package installation.
-export DEBIAN_FRONTEND=noninteractive
-#/etc/apt/apt.conf.d/10periodic
-#APT::Periodic::Update-Package-Lists "0";
 print_status "${YELLOW}Running VT-x check${NC}"
 if [ "$(lscpu | grep VT-x | wc -l)" != "1" ]; then
 echo -e "${RED}NOTICE: You cannot install 64-bit VMs or IRMA on this machine due to VT-x instruction set missing.${NC}"
@@ -87,12 +81,9 @@ else
 vtx=true
 echo -e "${YELLOW}NOTICE: VT-x instruction set found.${NC}"
 fi
-##Cuckoo user accounts
 echo -e "${YELLOW}We need to create a local account to run your Cuckoo sandbox from; What would you like your Cuckoo account username to be?${NC}"
 read name
 adduser $name --gecos ""
-#echo -e "${YELLOW}Please type in a Moloch admin password${NC}"
-#read cuckoo_moloch_pass
 echo -e "${YELLOW}Please type in a MySQL root password${NC}"
 read root_mysql_pass
 echo -e "${YELLOW}Please type in a MySQL cuckoo password${NC}"
@@ -105,9 +96,6 @@ do
 done
 echo -e "${YELLOW}What is the name of the interface you wish to route traffic through?(ex: eth0)${NC}"
 read interface
-#echo -e "${YELLOW}If you want to use Snort, please type in your Oinkcode, if you do not have it now you will need to append it to /etc/snort/pulledpork.conf in the future, the cron job will take care of updating it.${NC}"
-#read oinkcode
-#echo -e "${RED}Hang around for a few minutes to setup moloch, it will require some input.${NC}"
 
 ##Create directories and scripts for later
 print_status "${YELLOW}Configuring local files and scripts${NC}"
@@ -122,43 +110,47 @@ sed -i "s/steve/$name/g" $gitdir/supporting_scripts/restart_cuckoo.sh &>> $logfi
 sed -i "s/steve/$name/g" $gitdir/supporting_scripts/update_signatures.sh &>> $logfile
 sed -i "s/ens160/$interface/g" $gitdir/lib/snort.service &>> $logfile
 cp $gitdir/conf/* /home/$name/conf
-#cp $gitdir/supporting_scripts/firstrun.sh /home/$name/
 cp $gitdir/supporting_scripts/vmcloak.sh /home/$name/
 cp $gitdir/supporting_scripts/start_routing.sh /home/$name/
-chmod +x /home/$name/start_routing.sh
-cp $gitdir/supporting_scripts/DSDT_HPPaviliondv4NotebookPC.bin /home/$name/
-cp $gitdir/supporting_scripts/guest.ps1 /home/$name/
-chmod +x /home/$name/vmcloak.sh
 cp $gitdir/supporting_scripts/import_vbox_ova.sh /home/$name/
+chmod +x /home/$name/start_routing.sh
+chmod +x /home/$name/vmcloak.sh
 chmod +x /home/$name/import_vbox_ova.sh
 chown $name:$name /home/$name/import_vbox_ova.sh
 chmod +x  $gitdir/supporting_scripts/update_signatures.sh
 cp $gitdir/supporting_scripts/update_signatures.sh /home/$name/
 chown $name:$name -R /home/$name/conf
-#chown $name:$name -R /home/$name/firstrun.sh
 chown $name:$name -R /home/$name/vmcloak.sh
-#chmod +x /home/$name/firstrun.sh
 chmod +x $gitdir/supporting_scripts/restart_cuckoo.sh
 cp $gitdir/supporting_scripts/restart_cuckoo.sh /home/$name/
 cd tools/
 
 ##Checks
-apt-get install locate -y  &>> $logfile
-updatedb  &>> $logfile
 if [ "$(cat /etc/apt/sources.list | grep multiverse | wc -l)" -ge "1" ]; then
  multi_check=true
 fi
+
+###Add Repos
+##Ubuntu 18 sources and checks
+if [ "$multi_check" == "true" ]; then
+print_status "${YELLOW}Ubuntu Default Repos Exist..Skipping${NC}"
+else
+print_status "${YELLOW}Adding Repositories${NC}"
+add-apt-repository universe &>> $logfile
+fi
+apt-get update &>> $logfile
+apt-get install locate -y  &>> $logfile
+updatedb  &>> $logfile
+
+##Check for existing depos
 if [ "$(ls /etc/apt/sources.list.d | grep mongodb-org-3.6.list | wc -l)" -ge "1" ]; then
  mongo_check=true
 fi
-#if [ "$(locate /etc/systemd/system/mongodb.service | wc -l)" -ge "1" ]; then
-# mongoservice_check=true
-#fi
-if [ "$(ls /etc/apt/sources.list.d/ | grep elastic-5| wc -l)" -ge "1" ]; then
- elastic_check=true
-fi
 if [ "$(ls /etc/apt/sources.list.d/ | grep virtualbox.list| wc -l)" -ge "1" ]; then
  virtualbox_check=true
+fi
+if [ "$(ls /etc/apt/sources.list.d/ | grep elastic-5| wc -l)" -ge "1" ]; then
+ elastic_check=true
 fi
 if [ "$(which suricata | wc -l)" -ge "1" ]; then
  suricata_check=true
@@ -172,9 +164,6 @@ fi
 if [ "$(locate /etc/systemd/system/elasticsearch.service | wc -l)" -ge "1" ]; then
  elasticservice_check=true
 fi
-#if [ "$(locate /etc/systemd/system/molochviewer.service | wc -l)" -ge "1" ]; then
-# moloch_check=true
-#fi
 if [ "$(which yara | wc -l)" -ge "1" ]; then
  yara_check=true
 fi
@@ -193,17 +182,11 @@ fi
 if [ "$(locate /usr/local/bin/vol.py | wc -l)" -ge "1" ]; then
  vol_check=true
 fi
-
-###Add Repos
-print_status "${YELLOW}Adding Repositories${NC}"
-##Ubuntu
-if [ "$multi_check" == "true" ]; then
-print_status "${YELLOW}Skipping Ubuntu Repos${NC}"
-else
-echo "deb http://us.archive.ubuntu.com/ubuntu/ xenial multiverse" tee -a /etc/apt/sources.list  &>> $logfile
-echo "deb-src http://us.archive.ubuntu.com/ubuntu/ xenial multiverse" tee -a /etc/apt/sources.list  &>> $logfile
+if [ "$(cat /etc/apt/sources.list | grep torproject | wc -l)" -ge "1" ]; then
+ tor_check=true
 fi
 
+###Depo Additions
 ##Mongodb
 if [ "$mongo_check" == "true" ]; then
 print_status "${YELLOW}Skipping Mongo Repos${NC}"
@@ -211,6 +194,17 @@ else
 apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5 &>> $logfile
 echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list &>> $logfile
 error_check 'Mongodb repo added'
+fi
+
+##Tor
+if [ "$tor_check" == "true" ]; then
+print_status "${YELLOW}Skipping Tor Repos${NC}"
+else
+echo "deb https://deb.torproject.org/torproject.org bionic main" |  sudo tee -a /etc/apt/sources.list &>> $logfile
+echo "deb-src https://deb.torproject.org/torproject.org bionic main" |  sudo tee -a /etc/apt/sources.list &>> $logfile
+gpg --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 &>> $logfile
+gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | sudo apt-key add - &>> $logfile
+error_check 'Tor repo added'
 fi
 
 ##Java
@@ -243,12 +237,13 @@ add-apt-repository ppa:oisf/suricata-beta -y &>> $logfile
 error_check 'Suricata repo added'
 fi
 
-# Add the VirtualBox repository so we can use apt to install VirtualBox
+##Virtualbox
 if [ "$virtualbox_check" == "true" ]; then
 print_status "${YELLOW}Skipping Virtualbox Repos${NC}"
 else
-echo deb http://download.virtualbox.org/virtualbox/debian xenial contrib | sudo tee -a /etc/apt/sources.list.d/virtualbox.list &>> $logfile
-wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add - &>> $logfile
+wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
+wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
+sudo sh -c 'echo "deb http://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" >> /etc/apt/sources.list.d/virtualbox.list'
 error_check 'Virtualbox repo added'
 fi
 
@@ -267,35 +262,28 @@ apt-get update &>> $logfile && apt-get -y dist-upgrade &>> $logfile
 error_check 'Updated system'
 
 ##APT Packages
-print_status "${YELLOW}Downloading and installing depos${NC}"
+print_status "${YELLOW}Downloading and installing depos needed for installtion script${NC}"
 apt-get install -y build-essential checkinstall &>> $logfile
 error_check 'Build Essentials Installed'
+
 ##Java 
 print_status "${YELLOW}Installing Java${NC}"
-#echo debconf shared/accepted-oracle-license-v1-1 select true | \
-#  sudo debconf-set-selections &>> $logfile
-#apt-get install oracle-java8-installer -y &>> $logfile
 apt-get install -y --no-install-recommends openjdk-8-jre-headless -y &>> $logfile
 error_check 'Java Installed'
+
 chmod u+rwx /usr/local/src &>> $logfile
 apt-get install -y linux-headers-$(uname -r) &>> $logfile
-<<<<<<< HEAD
-install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev virtualbox-5.2 zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386 apt-transport-https software-properties-common python-software-properties libwww-perl libjson-perl ethtool parallel vagrant exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx
-error_check 'Depos installed'
-##Python Modules
-print_status "${YELLOW}Downloading and installing Cuckoo and Python dependencies${NC}"
-pip install -U setuptools &>> $logfile
-pip install -U flex &>> $logfile
-pip install -U distorm3 &>> $logfile
-pip install -U pycrypto &>> $logfile
-pip install -U weasyprint &>> $logfile
-pip install -U yara-python &>> $logfile
-#pip install -U cuckoo==2.0.4a5 &>> $logfile
-pip install -U cuckoo &>> $logfile
-pip install -U m2crypto==0.24.0 &>> $logfile
-=======
-install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev virtualbox zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386 apt-transport-https software-properties-common python-software-properties libwww-perl libjson-perl ethtool parallel vagrant virtualbox-ext-pack exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd
-error_check 'Depos installed'
+#libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386
+print_status "${YELLOW}Installing Apt Depos${NC}"
+install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libboost-all-dev libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi apt-transport-https software-properties-common libwww-perl libjson-perl ethtool parallel vagrant exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd virtualbox-5.2
+error_check 'Apt Depos installed'
+
+print_status "${YELLOW}Downloading and installing Virtualbox Extension${NC}"
+vboxversion=$(wget -qO - http://download.virtualbox.org/virtualbox/LATEST.TXT) &>> $logfile
+wget "http://download.virtualbox.org/virtualbox/${vboxversion}/Oracle_VM_VirtualBox_Extension_Pack-${vboxversion}.vbox-extpack" &>> $logfile
+echo "y" | vboxmanage extpack install --replace Oracle_VM_VirtualBox_Extension_Pack-${vboxversion}.vbox-extpack &>> $logfile
+error_check 'Virtualbox Extensions installed'
+
 ##Python Modules
 print_status "${YELLOW}Downloading and installing Cuckoo and Python dependencies${NC}"
 pip install --upgrade pip==9.0.3 &>> $logfile
@@ -308,20 +296,7 @@ pip install yara-python &>> $logfile
 pip install m2crypto==0.24.0  &>> $logfile
 #pip install -U pip cuckoo==2.0.4a5 &>> $logfile
 pip install cuckoo &>> $logfile
->>>>>>> 88cef129a682d32f4cf48b67255e33fae22996c6
 error_check 'Cuckoo and depos downloaded and installed'
-
-##Start MongoDB
-#if [ "$mongoservice_check" == "true" ]; then
-#print_status "${YELLOW}Mongo Service enabled, skipping config${NC}"
-#else
-#print_status "${YELLOW}Setting up MongoDB${NC}"
-#chmod 755 $gitdir/lib/mongodb.service &>> $logfile
-#cp $gitdir/lib/mongodb.service /etc/systemd/system/ &>> $logfile
-#systemctl start mongodb &>> $logfile
-#systemctl enable mongodb &>> $logfile
-#error_check 'MongoDB Setup'
-#fi
 
 ##Cuckoo Add-ons
 ##Elasticsearch
@@ -345,26 +320,6 @@ else
 exit 1
 fi
 
-##Moloch
-#if [ "$moloch_check" == "true" ]; then
-#print_status "${YELLOW}Moloch Service enabled, skipping config${NC}"
-#else
-#print_status "${YELLOW}Setting up Moloch${NC}"
-#cd $gitdir
-#wget https://files.molo.ch/builds/ubuntu-16.04/moloch_0.18.2-1_amd64.deb &>> $logfile
-#dpkg -i moloch_0.18.2-1_amd64.deb
-#print_status "${YELLOW}Use ${RED}vboxnet0${YELLOW} as the interface to sniff and keep the rest as default.${NC}"
-#/data/moloch/bin/Configure
-#perl /data/moloch/db/db.pl http://localhost:9200 init &>> $logfile
-#/data/moloch/bin/moloch_add_user.sh admin "Admin User" $cuckoo_moloch_pass --admin &>> $logfile
-#/data/moloch/bin/moloch_add_user.sh cuckoo "Cuckoo User" toor &>> $logfile
-#systemctl start molochcapture.service &>> $logfile
-#service molochcapture start &>> $logfile
-#systemctl start molochviewer.service &>> $logfile
-#service molochviewer start &>> $logfile
-#error_check 'Moloch Installed'
-#fi
-
 ##Yara
 if [ "$yara_check" == "true" ]; then
 print_status "${YELLOW}Yara installed, skipping config${NC}"
@@ -385,21 +340,6 @@ make check &>> $logfile
 error_check 'Yara installed'
 fi
 
-##DTrace
-#if [ "$dtrace_check" == "true" ]; then
-#print_status "${YELLOW}Dtrace installed, skipping config${NC}"
-#else
-#print_status "${YELLOW}Downloading and installing DTrace${NC}"
-#cd /etc
-#git clone https://github.com/dtrace4linux/linux.git dtrace &>> $logfile
-#cd dtrace
-#bash tools/get-deps.pl -y &>> $logfile
-#make all &>> $logfile
-#make install &>> $logfile
-#make load &>> $logfile
-#error_check 'DTrace installed'
-#fi
-
 ##Pydeep
 if [ "$pydeep_check" == "true" ]; then
 print_status "${YELLOW}Pydeep installed, skipping config${NC}"
@@ -409,17 +349,6 @@ print_status "${YELLOW}Setting up Pydeep${NC}"
 sudo -H pip install git+https://github.com/kbandla/pydeep.git &>> $logfile
 error_check 'Pydeep installed'
 fi
-
-##Malheur
-#cd /home/$name/tools/
-#print_status "${YELLOW}Setting up Malheur${NC}"
-#git clone https://github.com/rieck/malheur.git &>> $logfile
-#error_check 'Malheur downloaded'
-#cd malheur
-#./bootstrap &>> $logfile
-#./configure --prefix=/usr &>> $logfile
-#make install &>> $logfile
-#error_check 'Malheur installed'
 
 ##Volatility
 if [ "$vol_check" == "true" ]; then
@@ -450,7 +379,7 @@ cd $gitdir
 print_status "${YELLOW}Setting up Suricata${NC}"
 touch /etc/suricata/rules/cuckoo.rules &>> $logfile
 echo "alert http any any -> any any (msg:\"FILE store all\"; filestore; noalert; sid:15; rev:1;)"  | sudo tee /etc/suricata/rules/cuckoo.rules &>> $logfile
-chown $name:$name /etc/suricata/suricata.yaml
+chown $name:$name /etc/suricata/suricata.yaml &>> $logfile
 fi
 
 ##etupdate
@@ -552,7 +481,6 @@ apt-get -y install mysql-server python-mysqldb &>> $logfile
 error_check 'MySQL installed'
 print_status "${YELLOW}Configuring MySQL${NC}"
 mysql -uroot -p$root_mysql_pass -e "DELETE FROM mysql.user WHERE User=''; DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1'); DROP DATABASE IF EXISTS test; DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'; DROP DATABASE IF EXISTS cuckoo; CREATE DATABASE cuckoo; GRANT ALL PRIVILEGES ON cuckoo.* TO 'cuckoo'@'localhost' IDENTIFIED BY '$cuckoo_mysql_pass'; FLUSH PRIVILEGES;" &>> $logfile
-#mysql -uroot -p$root_mysql_pass -e "DELETE FROM mysql.user WHERE User=''; DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1'); DROP DATABASE IF EXISTS test; DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'; DROP DATABASE IF EXISTS cuckoo; FLUSH PRIVILEGES;" &>> $logfile
 error_check 'MySQL secure installation and cuckoo database/user creation'
 replace "connection =" "connection = mysql://cuckoo:$cuckoo_mysql_pass@localhost/cuckoo" -- /home/$name/conf/cuckoo.conf &>> $logfile
 error_check 'Configuration files modified'
@@ -560,16 +488,11 @@ fi
 
 ##Other tools
 cd /home/$name/tools/
-print_status "${YELLOW}Waiting for dpkg process to free up...${NC}"
-print_status "${YELLOW}If this takes too long try running ${RED}sudo rm -f /var/lib/dpkg/lock${YELLOW} in another terminal window.${NC}"
-while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-   sleep 1
-done
-print_status "${YELLOW}Grabbing other tools${NC}"
-cd $gitdir
-install_packages libboost-all-dev
+
+print_status "${YELLOW}Installing PyV8${NC}"
 sudo -H pip install git+https://github.com/buffer/pyv8 &>> $logfile
-print_status "${YELLOW}Installing antivmdetect and tools${NC}"
+
+print_status "${YELLOW}Installing Antivmdetect${NC}"
 ##Folder setup
 dir_check /usr/bin/cd-drive
 ##Antivm download
@@ -577,23 +500,20 @@ git clone https://github.com/benrau87/antivmdetect.git  &>> $logfile
 error_check 'Antivm tools downloaded'
 
 ##Guacamole Setup
+print_status "${YELLOW}Installing Gucamole${NC}"
 mkdir /tmp/guac-build && cd /tmp/guac-build  &>> $logfile
 wget https://www.apache.org/dist/guacamole/0.9.14/source/guacamole-server-0.9.14.tar.gz  &>> $logfile
-tar xvf guacamole-server-0.9.14.tar.gz && cd guacamole-server-0.9.14  &>> $logfile
+tar xvf guacamole-server-0.9.14.tar.gz  &>> $logfile
+cd guacamole-server-0.9.14  &>> $logfile
 ./configure --with-init-dir=/etc/init.d  &>> $logfile
 make && make install && cd ..  &>> $logfile
 ldconfig  &>> $logfile
 etc/init.d/guacd start  &>> $logfile
+error_check 'Guacamole installed'
 
 ##TOR
-print_status "${YELLOW}Installing Tor..${NC}"
-apt-get update -y &>> $logfile
-echo "deb http://deb.torproject.org/torproject.org xenial main" |  sudo tee -a /etc/apt/sources.list &>> $logfile
-echo "deb-src http://deb.torproject.org/torproject.org xenial main" |  sudo tee -a /etc/apt/sources.list &>> $logfile
-gpg2 --keyserver hkp://keys.gnupg.net:80 --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 &>> $logfile
-gpg2 --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | sudo apt-key add - &>> $logfile
-apt-get update &>> $logfile
-apt-get install tor deb.torproject.org-keyring -y &>> $logfile
+print_status "${YELLOW}Installing Tor${NC}"
+apt-get install tor deb.torproject.org-keyring -f -y &>> $logfile
 echo "TransPort 192.168.56.1:9040" | tee -a /etc/tor/torrc
 echo "DNSPort 192.168.56.1:5353" | tee -a /etc/tor/torrc
 error_check 'Tor installed'
@@ -615,17 +535,6 @@ error_check 'Permissions set'
 ###Setup of VirtualBox forwarding rules and host only adapter
 echo 1 | sudo tee -a /proc/sys/net/ipv4/ip_forward &>> $logfile
 sysctl -w net.ipv4.ip_forward=1 &>> $logfile
-##uncomment this area if you wish to use the old routing
-#print_status "${YELLOW}Creating virtual adapter${NC}"
-#iptables -t nat -A POSTROUTING -o $interface -s 10.1.1.0/24 -j MASQUERADE &>> $logfile
-#iptables -P FORWARD DROP &>> $logfile
-#iptables -A FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT &>> $logfile
-#iptables -A FORWARD -s 10.1.1.0/24 -j ACCEPT &>> $logfile
-#iptables -A FORWARD -s 10.1.1.0/24 -d 10.1.1.0/24 -j ACCEPT &>> $logfile
-#iptables -A FORWARD -j LOG &>> $logfile
-#print_status "${YELLOW}Preserving Iptables${NC}"
-#apt-get -qq install iptables-persistent -y &>> $logfile
-#error_check 'Persistent Iptable entries'
 
 ##Rooter
 print_status "${YELLOW}Adding route commands and crons${NC}"
@@ -646,6 +555,8 @@ sudo adduser www-data $name  &>> $logfile
 
 sudo -i -u $name cuckoo web --uwsgi | tee /tmp/cuckoo-web.ini  &>> $logfile
 mv /tmp/cuckoo-web.ini /etc/uwsgi/apps-available/  &>> $logfile
+echo "processes = 1" | tee -a /etc/uwsgi/apps-available/cuckoo-web.ini &>> $logfile
+echo "threads = 4" | tee -a /etc/uwsgi/apps-available/cuckoo-web.ini &>> $logfile
 ln -s /etc/uwsgi/apps-available/cuckoo-web.ini /etc/uwsgi/apps-enabled/  &>> $logfile
 
 sudo -i -u $name cuckoo web --nginx | tee /tmp/cuckoo-web  &>> $logfile

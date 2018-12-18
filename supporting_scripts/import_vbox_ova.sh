@@ -66,7 +66,7 @@ hexchars="0123456789ABCDEF"
 end=$( for i in {1..6} ; do echo -n ${hexchars:$(( $RANDOM % 16 )):1} ; done | sed -e 's/\(..\)/\1/g' )
 macadd="0019EC$end"
 
-print_notification MAKE SURE TO RUN THIS AS YOUR CUCKOO USER!!!!
+print_error "${YELLOW} MAKE SURE TO RUN THIS AS YOUR ${YELLOW}cuckoo${RED} USER, YOU ARE CURRENTLY RUNNING AS ${YELLOW}$USER${RED}!!!!${NC}"
 
 if [ "$#" -eq 0 ];then
 	echo "Enter the name of the .ova to import "
@@ -87,6 +87,7 @@ if [ "$t1" = "$t2" ]; then
   print_good "${YELLOW}Vboxnet0 interface found${NC}"
 else
   print_error "${YELLOW}Vboxnet0 not found please turn on using the start_routing.sh script${NC}"
+  exit
 fi
 
 echo -e "${YELLOW}What is the name for this machine?${NC}"
