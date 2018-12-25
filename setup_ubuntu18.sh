@@ -496,9 +496,9 @@ fi
 cd /home/$name/tools/
 
 print_status "${YELLOW}Installing PyV8${NC}"
-git clone https://github.com/buffer/pyv8 &>> $logfile
-sed -i 's:V8_SNAPSHOT_ENABLED = not DEBUG:V8_SNAPSHOT_ENABLED = False:g' pyv8/setup.py &>> $logfile
-pip install pyv8/ &>> $logfile
+git clone https://github.com/emmetio/pyv8-binaries.git &>> $logfile
+unzip pyv8-binaries/pyv8-linux64.zip &>> $logfile
+cp -a PyV8.py _PyV8.so /usr/lib/python2.7/dist-packages/
 
 print_status "${YELLOW}Installing Antivmdetect${NC}"
 ##Folder setup
