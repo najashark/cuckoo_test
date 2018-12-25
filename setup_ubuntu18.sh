@@ -72,6 +72,9 @@ fi
 }
 export DEBIAN_FRONTEND=noninteractive
 ########################################
+print_status "${YELLOW}Install net-tools${NC}"
+apt-get update &>> $logfile
+apt-get install net-tools -y  &>> $logfile
 ##BEGIN MAIN SCRIPT##
 #Pre checks: These are a couple of basic sanity checks the script does before proceeding.
 print_status "${YELLOW}Running VT-x check${NC}"
@@ -202,8 +205,10 @@ print_status "${YELLOW}Skipping Tor Repos${NC}"
 else
 echo "deb https://deb.torproject.org/torproject.org bionic main" |  sudo tee -a /etc/apt/sources.list &>> $logfile
 echo "deb-src https://deb.torproject.org/torproject.org bionic main" |  sudo tee -a /etc/apt/sources.list &>> $logfile
-gpg --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 &>> $logfile
-gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | sudo apt-key add - &>> $logfile
+#gpg --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 &>> $logfile
+#gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | sudo apt-key add - &>> $logfile
+gpg2 --keyserver hkp://keys.gnupg.net:80 --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 &>> $logfile
+gpg2 --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | sudo apt-key add - &>> $logfile
 error_check 'Tor repo added'
 fi
 
@@ -275,7 +280,7 @@ chmod u+rwx /usr/local/src &>> $logfile
 apt-get install -y linux-headers-$(uname -r) &>> $logfile
 #libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386
 print_status "${YELLOW}Installing Apt Depos${NC}"
-install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libboost-all-dev libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi apt-transport-https software-properties-common libwww-perl libjson-perl ethtool parallel vagrant exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd virtualbox-5.2 libossp-uuid-dev libpng-dev libcairo2-dev
+install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libboost-all-dev libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi apt-transport-https software-properties-common libwww-perl libjson-perl ethtool parallel vagrant exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd virtualbox-5.2 libossp-uuid-dev libpng-dev libcairo2-dev gnupg2
 error_check 'Apt Depos installed'
 
 print_status "${YELLOW}Downloading and installing Virtualbox Extension${NC}"
@@ -491,7 +496,9 @@ fi
 cd /home/$name/tools/
 
 print_status "${YELLOW}Installing PyV8${NC}"
-sudo -H pip install git+https://github.com/buffer/pyv8 &>> $logfile
+git clone https://github.com/buffer/pyv8 &>> $logfile
+sed -i 's:V8_SNAPSHOT_ENABLED = not DEBUG:V8_SNAPSHOT_ENABLED = False:g' pyv8/setup.py &>> $logfile
+pip install pyv8/ &>> $logfile
 
 print_status "${YELLOW}Installing Antivmdetect${NC}"
 ##Folder setup
