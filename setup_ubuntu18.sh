@@ -74,7 +74,7 @@ export DEBIAN_FRONTEND=noninteractive
 ########################################
 print_status "${YELLOW}Install net-tools${NC}"
 apt-get update &>> $logfile
-apt-get install net-tools -y  &>> $logfile
+apt-get install net-tools gnupg2 -y  &>> $logfile
 ##BEGIN MAIN SCRIPT##
 #Pre checks: These are a couple of basic sanity checks the script does before proceeding.
 print_status "${YELLOW}Running VT-x check${NC}"
