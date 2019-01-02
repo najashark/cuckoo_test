@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 if [ "$EUID" -ne 0 ]
