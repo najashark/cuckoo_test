@@ -288,12 +288,12 @@ pip install -U setuptools &>> $logfile
 pip install -U flex &>> $logfile
 pip install -U distorm3 &>> $logfile
 pip install -U pycrypto &>> $logfile
-pip install -U weasyprint &>> $logfile
+pip install -U weasyprint==0.42.3 &>> $logfile
 pip install -U yara-python &>> $logfile
 #pip install -U cuckoo==2.0.4a5 &>> $logfile
 pip install -U cuckoo &>> $logfile
 pip install -U m2crypto==0.24.0 &>> $logfile
-=======
+
 install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev virtualbox zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386 apt-transport-https software-properties-common python-software-properties libwww-perl libjson-perl ethtool parallel vagrant virtualbox-ext-pack exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd
 error_check 'Depos installed'
 ##Python Modules
