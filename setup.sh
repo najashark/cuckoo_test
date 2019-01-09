@@ -303,12 +303,12 @@ pip install setuptools &>> $logfile
 pip install flex &>> $logfile
 pip install distorm3 &>> $logfile
 pip install pycrypto &>> $logfile
-pip install weasyprint &>> $logfile
+pip install weasyprint==0.42.3 &>> $logfile
 pip install yara-python &>> $logfile
 pip install m2crypto==0.24.0  &>> $logfile
 #pip install -U pip cuckoo==2.0.4a5 &>> $logfile
 pip install cuckoo &>> $logfile
->>>>>>> 88cef129a682d32f4cf48b67255e33fae22996c6
+
 error_check 'Cuckoo and depos downloaded and installed'
 
 ##Start MongoDB
