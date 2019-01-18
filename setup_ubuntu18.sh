@@ -510,12 +510,13 @@ error_check 'Antivm tools downloaded'
 ##Guacamole Setup
 print_status "${YELLOW}Installing Gucamole${NC}"
 mkdir /tmp/guac-build && cd /tmp/guac-build  &>> $logfile
-wget https://www.apache.org/dist/guacamole/1.0.0/source/guacamole-client-1.0.0.tar.gz  &>> $logfile
+wget https://www.apache.org/dist/guacamole/1.0.0/source/guacamole-server-1.0.0.tar.gz  &>> $logfile
 tar xvf guacamole-server-1.0.0.tar.gz  &>> $logfile
 cd guacamole-server-1.0.0  &>> $logfile
 ./configure --with-init-dir=/etc/init.d  &>> $logfile
 make && make install && cd ..  &>> $logfile
 ldconfig  &>> $logfile
+systemctl daemon-reload
 service guacd start  &>> $logfile
 error_check 'Guacamole installed'
 
