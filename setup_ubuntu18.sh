@@ -36,16 +36,16 @@ function print_error ()
 
 function print_notification ()
 {
-	echo -e "\x1B[01;33m[*]\x1B[0m $1"
+        echo -e "\x1B[01;33m[*]\x1B[0m $1"
 }
 
 function error_check
 {
 
 if [ $? -eq 0 ]; then
-	print_good "$1 successfully."
+        print_good "$1 successfully."
 else
-	print_error "$1 failed. Please check $logfile for more details."
+        print_error "$1 failed. Please check $logfile for more details."
 exit 1
 fi
 
@@ -63,10 +63,10 @@ function dir_check()
 {
 
 if [ ! -d $1 ]; then
-	print_notification "$1 does not exist. Creating.."
-	mkdir -p $1
+        print_notification "$1 does not exist. Creating.."
+        mkdir -p $1
 else
-	print_notification "$1 already exists. (No problem, We'll use it anyhow)"
+        print_notification "$1 already exists. (No problem, We'll use it anyhow)"
 fi
 
 }
@@ -93,7 +93,7 @@ echo -e "${YELLOW}Please type in a MySQL cuckoo password${NC}"
 read cuckoo_mysql_pass
 echo -e "${RED}Active interfaces${NC}"
 for iface in $(ifconfig | cut -d ' ' -f1| tr '\n' ' ')
-do 
+do
   addr=$(ip -o -4 addr list $iface | awk '{print $4}' | cut -d/ -f1)
   printf "$iface\t$addr\n"
 done
@@ -205,10 +205,8 @@ print_status "${YELLOW}Skipping Tor Repos${NC}"
 else
 echo "deb https://deb.torproject.org/torproject.org bionic main" |  sudo tee -a /etc/apt/sources.list &>> $logfile
 echo "deb-src https://deb.torproject.org/torproject.org bionic main" |  sudo tee -a /etc/apt/sources.list &>> $logfile
-#gpg --keyserver keys.gnupg.net --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 &>> $logfile
-#gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | sudo apt-key add - &>> $logfile
-gpg2 --keyserver hkp://keys.gnupg.net:80 --recv A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 &>> $logfile
-gpg2 --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | sudo apt-key add - &>> $logfile
+curl https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --import &>> $logfile
+gpg --export A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89 | sudo apt-key add - &>> $logfile
 error_check 'Tor repo added'
 fi
 
@@ -249,6 +247,10 @@ else
 wget -q https://www.virtualbox.org/download/oracle_vbox_2016.asc -O- | sudo apt-key add -
 wget -q https://www.virtualbox.org/download/oracle_vbox.asc -O- | sudo apt-key add -
 sudo sh -c 'echo "deb http://download.virtualbox.org/virtualbox/debian $(lsb_release -sc) contrib" >> /etc/apt/sources.list.d/virtualbox.list'
+#vboxversion=$(wget -qO - http://download.virtualbox.org/virtualbox/LATEST.TXT) &>> $logfile
+#wget "http://download.virtualbox.org/virtualbox/${vboxversion}/Oracle_VM_VirtualBox_Extension_Pack-${vboxversion}.vbox-extpack" &>> $logfile
+#echo "y" | vboxmanage extpack install --replace Oracle_VM_VirtualBox_Extension_Pack-${vboxversion}.vbox-extpack &>> $logfile
+echo virtualbox-ext-pack virtualbox-ext-pack/license select true | sudo debconf-set-selections
 error_check 'Virtualbox repo added'
 fi
 
@@ -271,7 +273,7 @@ print_status "${YELLOW}Downloading and installing depos needed for installtion s
 apt-get install -y build-essential checkinstall &>> $logfile
 error_check 'Build Essentials Installed'
 
-##Java 
+##Java
 print_status "${YELLOW}Installing Java${NC}"
 apt-get install -y --no-install-recommends openjdk-8-jre-headless -y &>> $logfile
 error_check 'Java Installed'
@@ -280,14 +282,8 @@ chmod u+rwx /usr/local/src &>> $logfile
 apt-get install -y linux-headers-$(uname -r) &>> $logfile
 #libstdc++6:i386 libgcc1:i386 zlib1g:i386 libncurses5:i386
 print_status "${YELLOW}Installing Apt Depos${NC}"
-install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libboost-all-dev libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi apt-transport-https software-properties-common libwww-perl libjson-perl ethtool parallel vagrant exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd virtualbox-6.0 libossp-uuid-dev libpng-dev libcairo2-dev gnupg2
+install_packages python python-dev python-pip python-setuptools python-sqlalchemy python-virtualenv make automake libboost-all-dev libdumbnet-dev libarchive-dev libcap2-bin libconfig-dev libcrypt-ssleay-perl libelf-dev libffi-dev libfuzzy-dev libgeoip-dev libjansson-dev libjpeg-dev liblwp-useragent-determined-perl liblzma-dev libmagic-dev libpcap-dev libpcre++-dev libpq-dev libssl-dev libtool apparmor-utils apt-listchanges bison byacc clamav clamav-daemon clamav-freshclam dh-autoreconf elasticsearch fail2ban flex gcc mongodb-org suricata swig tcpdump tesseract-ocr unattended-upgrades uthash-dev zlib1g-dev wkhtmltopdf xvfb xfonts-100dpi apt-transport-https software-properties-common libwww-perl libjson-perl ethtool parallel vagrant exfat-utils exfat-fuse xterm uwsgi uwsgi-plugin-python nginx libguac-client-rdp0 libguac-client-vnc0 libguac-client-ssh0 guacd virtualbox-5.2 virtualbox-ext-pack
 error_check 'Apt Depos installed'
-
-print_status "${YELLOW}Downloading and installing Virtualbox Extension${NC}"
-vboxversion=$(wget -qO - http://download.virtualbox.org/virtualbox/LATEST.TXT) &>> $logfile
-wget "http://download.virtualbox.org/virtualbox/${vboxversion}/Oracle_VM_VirtualBox_Extension_Pack-${vboxversion}.vbox-extpack" &>> $logfile
-echo "y" | vboxmanage extpack install --replace Oracle_VM_VirtualBox_Extension_Pack-${vboxversion}.vbox-extpack &>> $logfile
-error_check 'Virtualbox Extensions installed'
 
 ##Python Modules
 print_status "${YELLOW}Downloading and installing Cuckoo and Python dependencies${NC}"
@@ -322,7 +318,7 @@ sleep 5
 if [ "$(ps aux | grep elastic | wc -l)" -gt "1" ]; then
 print_status "${YELLOW}Java and elastic running${NC}"
 else
-	print_error "Please rerun this script or manually enable elasticsearch"
+        print_error "Please rerun this script or manually enable elasticsearch"
 exit 1
 fi
 
@@ -398,7 +394,7 @@ mv etupdate /usr/sbin/
 error_check 'Suricata updateded'
 chown $name:$name /usr/sbin/etupdate &>> $logfile
 chown -R $name:$name /etc/suricata/rules &>> $logfile
-crontab -u $name $gitdir/lib/cron  
+crontab -u $name $gitdir/lib/cron
 cp $gitdir/lib/suricata-cuckoo.yaml /etc/suricata/suricata.yaml
 error_check 'Suricata configured for auto-update'
 fi
@@ -429,7 +425,7 @@ fi
 ##error_check 'Snort installed'
 ##ldconfig  &>> $logfile
 ##ln -s /usr/local/bin/snort /usr/sbin/snort  &>> $logfile
-##groupadd snort  &>> $logfile 
+##groupadd snort  &>> $logfile
 ##sudo useradd snort -r -s /sbin/nologin -c SNORT_IDS -g snort  &>> $logfile
 ##mkdir -p /etc/snort/rules/iplists  &>> $logfile
 ##mkdir /etc/snort/preproc_rules &>> $logfile
@@ -481,9 +477,9 @@ else
 print_status "${YELLOW}Installing MySQL${NC}"
 debconf-set-selections <<< "mysql-server mysql-server/$root_mysql_pass password root" &>> $logfile
 debconf-set-selections <<< "mysql-server mysql-server/$root_mysql_pass password root" &>> $logfile
-error_check 'MySQL passwords set' 
+error_check 'MySQL passwords set'
 print_status "${YELLOW}Downloading and installing MySQL${NC}"
-apt-get -y install mysql-server python-mysqldb &>> $logfile 
+apt-get -y install mysql-server python-mysqldb &>> $logfile
 error_check 'MySQL installed'
 print_status "${YELLOW}Configuring MySQL${NC}"
 mysql -uroot -p$root_mysql_pass -e "DELETE FROM mysql.user WHERE User=''; DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1'); DROP DATABASE IF EXISTS test; DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%'; DROP DATABASE IF EXISTS cuckoo; CREATE DATABASE cuckoo; GRANT ALL PRIVILEGES ON cuckoo.* TO 'cuckoo'@'localhost' IDENTIFIED BY '$cuckoo_mysql_pass'; FLUSH PRIVILEGES;" &>> $logfile

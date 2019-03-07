@@ -110,9 +110,16 @@ mount -o loop,ro /mnt/windows_ISO/* /mnt/$name &>> $logfile
 chown $user:$user /mnt/office_ISO/* &>> $logfile
 error_check 'Mounted ISOs'
 
-print_status "${YELLOW}Updating Agent${NC}"
+print_status "${YELLOW}Updating Agent and checking installed packages${NC}"
 cp /home/$user/.cuckoo/agent/agent.py  /usr/local/lib/python2.7/dist-packages/vmcloak/data/bootstrap/ &>> $logfile
 chown root:staff /usr/local/lib/python2.7/dist-packages/vmcloak/data/bootstrap/agent.py &>> $logfile
+
+if [ "$(vboxmanage list extpacks | grep Extension | wc -l)" -ge "2" ]; then
+print_status "${YELLOW}VB Extension Pack installed${NC}"
+else
+echo virtualbox-ext-pack virtualbox-ext-pack/license select true | sudo debconf-set-selections  &>> $logfile
+apt install -y virtualbox-ext-pack  &>> $logfile
+fi
 
 print_status "${YELLOW}Checking for host only interface${NC}"
 t1=$(ifconfig -a | grep -o vboxnet0)
@@ -127,7 +134,7 @@ fi
 vmcloak-iptables 192.168.56.0/24 $interface
 error_check 'Interface configured'
 
-echo -e "${YELLOW}Creating VM, hold on to your butts.${NC}"
+echo -e "${YELLOW}Creating VM, be patient this can take up to 1 hour depending on hardware.${NC}"
 if [ -z "$serial" ]
 then
 su - $user -c "vmcloak init --$distro --ramsize $ram --cpus $cpu --iso-mount /mnt/$name $name"
@@ -140,17 +147,17 @@ su - $user -c "vmcloak init --$distro --serial-key $serial --ramsize $ram --cpus
 #vmcloak -u $user init --$distro --serial-key $serial --ramsize $ram --cpus $cpu --iso-mount /mnt/$name $name &>> $logfile
 error_check 'Created VM'
 fi
-echo -e "${YELLOW}Installing programs on VM.${NC}"
+echo -e "${YELLOW}Installing programs on VM, this can take up to an hour depending on hardware and internet speed.${NC}"
 if [ -z "$office_serial" ]
 then
-su - $user -c "vmcloak install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome"
+su - $user -c "vmcloak install $name adobe9 sysmon dotnet flash python27 pillow java removetooltips wallpaper winrar chrome"
 #vmcloak -u $user install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome ie11
 error_check 'Installed apps on VMs'
 else
 mv /mnt/office_ISO/* /mnt/office_ISO/office.iso &>> $logfile
 su - $user -c "vmcloak install $name office office.isopath=/mnt/office_ISO/office.iso office.serialkey=$office_serial"
 #vmcloak -u $user install $name office office.isopath=/mnt/office_ISO/office.iso office.serialkey=$office_serial
-su - $user -c "vmcloak install $name python27 pillow adobe9 dotnet cuteftp flash chrome ie11 wic pillow java removetooltips wallpaper winrar chrome" 
+su - $user -c "vmcloak install $name python27 pillow adobe9 sysmon dotnet flash chrome ie11 pillow java removetooltips wallpaper winrar chrome" 
 #vmcloak -u $user install $name adobe9 dotnet cuteftp flash wic python27 pillow java removetooltips wallpaper winrar chrome ie11
 error_check 'Installed apps on VMs'
 fi
@@ -161,6 +168,7 @@ su - $user -c "vmcloak snapshot $name $name" &>> $logfile
 error_check 'Created snapshot'
 echo
 
+echo -e "${YELLOW}Applying Hardware Anti-Virtualization Hardware IDs and settings to VM.${NC}"  
 hexchars="0123456789ABCDEF"
 end=$( for i in {1..6} ; do echo -n ${hexchars:$(( $RANDOM % 16 )):1} ; done | sed -e 's/\(..\)/\1/g' )
 macadd="0019EC$end"
@@ -248,10 +256,14 @@ read -n 1 -s -p "VM started, you can RDP to the running box at port 3389 on this
 echo
 
 echo -e "${YELLOW}Shutting down VM...${NC}"
-sudo -i -u $user VBoxManage controlvm $name acpipowerbutton
-#wait for machine to power down, not the most elegant solution...
-sleep 60
-
+#sudo -i -u $user VBoxManage controlvm $name acpipowerbutton
+su -c "VBoxManage controlvm $name acpipowerbutton" -s /bin/bash $user
+while [ "`su -c 'VBoxManage list runningvms' -s /bin/bash $user`" != "" ]
+do
+	echo -e "${YELLOW}Waiting for VMs to shutdown...${NC}"
+	sleep 10
+done
+echo -e "${YELLOW}VM Shutdown${NC}"
 echo -e "${YELLOW}Exporting OVA as golden image and removing vm...${NC}"
 sudo -i -u $user vboxmanage export $name --output $PWD/"$name""_golden.ova"
 sudo -i -u $user vboxmanage unregistervm $name --delete
