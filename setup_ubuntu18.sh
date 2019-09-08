@@ -116,6 +116,8 @@ cp $gitdir/conf/* /home/$name/conf
 cp $gitdir/supporting_scripts/vmcloak.sh /home/$name/
 cp $gitdir/supporting_scripts/start_routing.sh /home/$name/
 cp $gitdir/supporting_scripts/import_vbox_ova.sh /home/$name/
+cp $gitdir/supporting_scripts/DSDT_HPPaviliondv4NotebookPC.bin /home/$name/
+cp $gitdir/supporting_scripts/guest.ps1 /home/$name/
 chmod +x /home/$name/start_routing.sh
 chmod +x /home/$name/vmcloak.sh
 chmod +x /home/$name/import_vbox_ova.sh
